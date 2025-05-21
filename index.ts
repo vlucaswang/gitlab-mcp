@@ -54,6 +54,7 @@ import {
   GetMergeRequestSchema,
   GetMergeRequestDiffsSchema,
   UpdateMergeRequestSchema,
+  ApproveMergeRequestSchema, // Added for approveMergeRequest
   ListIssuesSchema,
   GetIssueSchema,
   UpdateIssueSchema,
@@ -121,6 +122,8 @@ import {
   GetRepositoryTreeSchema,
   type GitLabTreeItem,
   type GetRepositoryTreeOptions,
+  // Added for approveMergeRequest
+  type ApproveMergeRequestOptions,
 } from "./schemas.js";
 
 /**
@@ -261,6 +264,11 @@ const allTools = [
     description:
       "Update a merge request (Either mergeRequestIid or branchName must be provided)",
     inputSchema: zodToJsonSchema(UpdateMergeRequestSchema),
+  },
+  {
+    name: "approve_merge_request",
+    description: "Approve a merge request",
+    inputSchema: zodToJsonSchema(ApproveMergeRequestSchema),
   },
   {
     name: "create_note",
@@ -484,6 +492,36 @@ const GITLAB_API_URL = normalizeGitLabApiUrl(process.env.GITLAB_API_URL || "");
 if (!GITLAB_PERSONAL_ACCESS_TOKEN) {
   console.error("GITLAB_PERSONAL_ACCESS_TOKEN environment variable is not set");
   process.exit(1);
+}
+
+/**
+ * Approve a merge request
+ * MR 승인 함수
+ *
+ * @param {string} projectId - The ID or URL-encoded path of the project
+ * @param {number} mergeRequestIid - The internal ID of the merge request
+ * @returns {Promise<GitLabMergeRequest>} The merge request details after approval
+ */
+async function approveMergeRequest(
+  projectId: string,
+  mergeRequestIid: number
+): Promise<GitLabMergeRequest> {
+  const validatedOptions = ApproveMergeRequestSchema.parse({ project_id: projectId, merge_request_iid: mergeRequestIid });
+  projectId = decodeURIComponent(validatedOptions.project_id); // Decode project ID
+  const url = new URL(
+    `${GITLAB_API_URL}/projects/${encodeURIComponent(
+      projectId
+    )}/merge_requests/${validatedOptions.merge_request_iid}/approve`
+  );
+
+  const response = await fetch(url.toString(), {
+    ...DEFAULT_FETCH_CONFIG,
+    method: "POST",
+  });
+
+  await handleGitLabError(response);
+  const data = await response.json();
+  return GitLabMergeRequestSchema.parse(data);
 }
 
 /**
@@ -2291,6 +2329,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   };
 });
 
+// Export functions for testing
+export { normalizeGitLabApiUrl, handleGitLabError, approveMergeRequest };
+
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     if (!request.params.arguments) {
@@ -2497,6 +2538,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           options,
           merge_request_iid,
           source_branch
+        );
+        return {
+          content: [
+            { type: "text", text: JSON.stringify(mergeRequest, null, 2) },
+          ],
+        };
+      }
+
+      case "approve_merge_request": {
+        const args = ApproveMergeRequestSchema.parse(request.params.arguments);
+        const mergeRequest = await approveMergeRequest(
+          args.project_id,
+          args.merge_request_iid
         );
         return {
           content: [

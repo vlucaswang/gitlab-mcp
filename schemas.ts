@@ -630,6 +630,10 @@ export const UpdateMergeRequestSchema = GetMergeRequestSchema.extend({
   draft: z.boolean().optional().describe("Work in progress merge request"),
 });
 
+export const ApproveMergeRequestSchema = ProjectParamsSchema.extend({
+  merge_request_iid: z.number().describe("The IID of a merge request"),
+});
+
 export const GetMergeRequestDiffsSchema = GetMergeRequestSchema.extend({
   view: z.enum(["inline", "parallel"]).optional().describe("Diff view type"),
 });
@@ -1102,3 +1106,4 @@ export type GetRepositoryTreeOptions = z.infer<typeof GetRepositoryTreeSchema>;
 export type MergeRequestThreadPosition = z.infer<typeof MergeRequestThreadPositionSchema>;
 export type CreateMergeRequestThreadOptions = z.infer<typeof CreateMergeRequestThreadSchema>;
 export type CreateMergeRequestNoteOptions = z.infer<typeof CreateMergeRequestNoteSchema>;
+export type ApproveMergeRequestOptions = z.infer<typeof ApproveMergeRequestSchema>;
