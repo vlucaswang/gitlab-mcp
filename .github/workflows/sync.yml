@@ -64,11 +64,11 @@ jobs:
           TAG=$(jq -r .version package.json)
           echo "TAG=$TAG" >> $GITHUB_ENV
 
-      # - name: Build and push
-      #   if: steps.sync.outputs.has_new_commits == 'true' or ${{ inputs.force_build == 'true' }}
-      #   uses: docker/build-push-action@v6
-      #   with:
-      #     platforms: linux/amd64,linux/arm64
-      #     push: true
-      #     tags: nkwd/gitlab-mcp:latest,nkwd/gitlab-mcp:${{ github.sha }},
-      #           nkwd/gitlab-mcp:${{ env.TAG }}
+      - name: Build and push
+        if: steps.sync.outputs.has_new_commits == 'true' or ${{ inputs.force_build == 'true' }}
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: nkwd/gitlab-mcp:latest,nkwd/gitlab-mcp:${{ github.sha }},
+                nkwd/gitlab-mcp:${{ env.TAG }}
